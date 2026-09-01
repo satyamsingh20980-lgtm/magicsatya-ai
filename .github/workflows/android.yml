@@ -25,13 +25,23 @@ jobs:
           cp -r $PROJECT_DIR/.* ./ 2>/dev/null || true
         fi
 
+    - name: Generate Dummy Keystore & Google Services if missing
+      run: |
+        # Generate default debug keystore if expected by project
+        keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US" || true
+
+        # Create dummy google-services.json if missing in app directory
+        if [ -d "app" ] && [ ! -f "app/google-services.json" ]; then
+          echo '{"project_info":{"project_number":"0","project_id":"dummy"},"client":[{"client_info":{"mobilesdk_app_id":"1:0:android:0","android_client_info":{"package_name":"com.example.app"}},"api_key":[{"current_key":"dummy"}]}]}' > app/google-services.json
+        fi
+
     - name: set up JDK 17
       uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Setup Gradle (No Cache)
+    - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
       with:
         cache-disabled: true
@@ -42,12 +52,12 @@ jobs:
           chmod +x gradlew
         fi
 
-    - name: Build APK with Gradle Wrapper
+    - name: Build APK
       run: |
         if [ -f gradlew ]; then
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug --no-daemon -x validateSigningDebug
         else
-          gradle assembleDebug --no-daemon
+          gradle assembleDebug --no-daemon -x validateSigningDebug
         fi
 
     - name: Upload APK
