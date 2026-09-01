@@ -25,15 +25,12 @@ jobs:
           cp -r $PROJECT_DIR/.* ./ 2>/dev/null || true
         fi
 
-    - name: Generate Dummy Keystore & Google Services if missing
+    - name: Generate Proper Google Services JSON & Keystore
       run: |
-        # Generate default debug keystore if expected by project
         keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US" || true
 
-        # Create dummy google-services.json if missing in app directory
-        if [ -d "app" ] && [ ! -f "app/google-services.json" ]; then
-          echo '{"project_info":{"project_number":"0","project_id":"dummy"},"client":[{"client_info":{"mobilesdk_app_id":"1:0:android:0","android_client_info":{"package_name":"com.example.app"}},"api_key":[{"current_key":"dummy"}]}]}' > app/google-services.json
-        fi
+        mkdir -p app
+        echo '{"project_info":{"project_number":"123456789","project_id":"magicsatya-ai","storage_bucket":"magicsatya-ai.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:123456789:android:123456789","android_client_info":{"package_name":"com.aistudio.magicsatya.app"}},"api_key":[{"current_key":"AIzaSyDummyKeyForBuildOnly123456"}]}]}' > app/google-services.json
 
     - name: set up JDK 17
       uses: actions/setup-java@v4
