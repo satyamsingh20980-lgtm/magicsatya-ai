@@ -13,13 +13,14 @@ jobs:
 
     - name: Unzip project files
       run: |
-        if [ -f magicsatya-ai.zip ]; then
-          unzip -q magicsatya-ai.zip -d temp_folder
-          if [ -d "temp_folder/magicsatya-ai" ]; then
-            cp -r temp_folder/magicsatya-ai/* ./
-          else
-            cp -r temp_folder/* ./
-          fi
+        ZIP_FILE=$(find . -maxdepth 1 -name "*.zip" | head -n 1)
+        if [ -n "$ZIP_FILE" ]; then
+          unzip -o "$ZIP_FILE"
+        fi
+        GRADLEW_PATH=$(find . -name "gradlew" | head -n 1)
+        if [ -n "$GRADLEW_PATH" ]; then
+          DIR=$(dirname "$GRADLEW_PATH")
+          cp -r $DIR/* ./
         fi
 
     - name: set up JDK 17
@@ -29,7 +30,11 @@ jobs:
         distribution: 'temurin'
 
     - name: Grant execute permission for gradlew
-      run: chmod +x gradlew || true
+      run: |
+        if [ ! -f gradlew ]; then
+          gradle wrapper
+        fi
+        chmod +x gradlew
 
     - name: Build APK
       run: ./gradlew assembleDebug
