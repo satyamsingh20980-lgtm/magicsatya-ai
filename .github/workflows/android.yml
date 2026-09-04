@@ -11,18 +11,11 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Extract ZIP File Cleanly
+    - name: Unzip and Setup Project
       run: |
-        unzip -o magicsatya-ai.zip -d extracted_project
-        if [ -f "extracted_project/gradlew" ]; then
-          cp -r extracted_project/* .
-          cp -r extracted_project/.* . 2>/dev/null || true
-        else
-          INSIDE_DIR=$(find extracted_project -maxdepth 2 -name "gradlew" | head -n 1 | xargs dirname)
-          cp -r $INSIDE_DIR/* .
-          cp -r $INSIDE_DIR/.* . 2>/dev/null || true
-        fi
-        rm -rf extracted_project
+        unzip -o magicsatya-ai.zip
+        rsync -av magicsatya-ai/ .
+        rm -rf magicsatya-ai
 
     - name: set up JDK 17
       uses: actions/setup-java@v4
