@@ -13,9 +13,11 @@ jobs:
 
     - name: Unzip and Setup Project
       run: |
-        unzip -o magicsatya-ai.zip
-        rsync -av magicsatya-ai/ .
-        rm -rf magicsatya-ai
+        unzip -o magicsatya-ai.zip -d temp_extracted
+        GRADLEW_PATH=$(find temp_extracted -name "gradlew" | head -n 1)
+        PROJECT_DIR=$(dirname "$GRADLEW_PATH")
+        rsync -av "$PROJECT_DIR/" .
+        rm -rf temp_extracted
 
     - name: set up JDK 17
       uses: actions/setup-java@v4
