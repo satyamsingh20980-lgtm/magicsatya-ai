@@ -3,147 +3,180 @@ package com.example.magicsatya
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.Dispatchers
+import com.google.ai.client.generativeai.GenerativeModel
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.net.HttpURLConnection
-import java.net.URL
-import org.json.JSONObject
+
+private const val API_KEY = "YOUR_GEMINI_API_KEY_HERE"
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme {
+            MagicSatyaTheme {
                 ChatScreen()
             }
         }
     }
 }
 
-data class ChatMessage(val text: String, val isUser: Boolean)
+data class Message(val text: String, val isUser: Boolean)
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen() {
-    var textState by remember { mutableStateOf("") }
-    val messages = remember { mutableStateListOf(ChatMessage("Hello! Main MagicSatya AI hu. Kaise madad karu?", false)) }
+    val messages = remember { mutableStateListOf(Message("Hello! Main MagicSatya AI hu. Aaj main aapki kya madad karu?", false)) }
+    var inputText by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
-    val coroutineScope = rememberCoroutineScope()
+    val scope = rememberCoroutineScope()
+    val generativeModel = remember { GenerativeModel(modelName = "gemini-1.5-flash", apiKey = API_KEY) }
 
-    val apiKey = "AQ.Ab8RN6I5VvgvbMV2e_y2r2vCJ0kGoiqDjzrs07Gp2BK_uvSMWw"
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF121214))
+    ) {
+        // Top Header Bar
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Brush.horizontalGradient(listOf(Color(0xFF4A148C), Color(0xFF311B92))))
+                .padding(vertical = 16.dp, horizontal = 20.dp)
+        ) {
+            Column {
+                Text(
+                    text = "MagicSatya AI",
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "● Active Now",
+                    color = Color(0xFF00E676),
+                    fontSize = 12.sp
+                )
+            }
+        }
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text(
-            text = "MagicSatya AI",
-            fontSize = 22.sp,
-            modifier = Modifier.padding(bottom = 12.dp)
-        )
-
-        LazyColumn(modifier = Modifier.weight(1f)) {
+        // Chat List
+        LazyColumn(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        ) {
             items(messages) { msg ->
-                Box(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                    contentAlignment = if (msg.isUser) Alignment.CenterEnd else Alignment.CenterStart
-                ) {
-                    Card(
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (msg.isUser) Color(0xFF2196F3) else Color(0xFFE0E0E0)
-                        ),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text(
-                            text = msg.text,
-                            color = if (msg.isUser) Color.White else Color.Black,
-                            modifier = Modifier.padding(12.dp)
-                        )
-                    }
+                ChatBubble(msg)
+                Spacer(modifier = Modifier.height(10.dp))
+            }
+            if (isLoading) {
+                item {
+                    Text(
+                        text = "MagicSatya AI is thinking...",
+                        color = Color.Gray,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
                 }
             }
         }
 
-        if (isLoading) {
-            CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally).padding(8.dp))
-        }
-
-        Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        // Bottom Input Field
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             TextField(
-                value = textState,
-                onValueChange = { textState = it },
-                modifier = Modifier.weight(1f),
-                placeholder = { Text("Ask MagicSatya AI...") }
+                value = inputText,
+                onValueChange = { inputText = it },
+                placeholder = { Text("Ask anything...", color = Color.Gray) },
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color(0xFF1E1E24),
+                    unfocusedContainerColor = Color(0xFF1E1E24),
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
+                ),
+                shape = RoundedCornerShape(24.dp),
+                modifier = Modifier.weight(1f)
             )
+
             Spacer(modifier = Modifier.width(8.dp))
+
             Button(
                 onClick = {
-                    if (textState.isNotBlank() && !isLoading) {
-                        val userQuery = textState
-                        messages.add(ChatMessage(userQuery, true))
-                        textState = ""
+                    if (inputText.isNotBlank()) {
+                        val userMsg = inputText
+                        messages.add(Message(userMsg, true))
+                        inputText = ""
                         isLoading = true
 
-                        coroutineScope.launch(Dispatchers.IO) {
-                            val reply = getAiResponse(userQuery, apiKey)
-                            withContext(Dispatchers.Main) {
-                                messages.add(ChatMessage(reply, false))
+                        scope.launch {
+                            try {
+                                val response = generativeModel.generateContent(userMsg)
+                                messages.add(Message(response.text ?: "No response", false))
+                            } catch (e: Exception) {
+                                messages.add(Message("Error: ${e.localizedMessage}", false))
+                            } finally {
                                 isLoading = false
                             }
                         }
                     }
-                }
+                },
+                shape = CircleShape,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C4DFF)),
+                contentPadding = PaddingValues(16.dp)
             ) {
-                Text("Send")
+                Text("➤", color = Color.White, fontSize = 16.sp)
             }
         }
     }
 }
 
-fun getAiResponse(prompt: String, apiKey: String): String {
-    return try {
-        val url = URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey")
-        val conn = url.openConnection() as HttpURLConnection
-        conn.requestMethod = "POST"
-        conn.setRequestProperty("Content-Type", "application/json")
-        conn.doOutput = true
-
-        val jsonInput = JSONObject().apply {
-            put("contents", org.json.JSONArray().apply {
-                put(JSONObject().apply {
-                    put("parts", org.json.JSONArray().apply {
-                        put(JSONObject().apply { put("text", prompt) })
-                    })
-                })
-            })
+@Composable
+fun ChatBubble(message: Message) {
+    Box(
+        modifier = Modifier.fillMaxWidth(),
+        contentAlignment = if (message.isUser) Alignment.CenterEnd else Alignment.CenterStart
+    ) {
+        Surface(
+            color = if (message.isUser) Color(0xFF7C4DFF) else Color(0xFF26262E),
+            shape = RoundedCornerShape(
+                topStart = 18.dp,
+                topEnd = 18.dp,
+                bottomStart = if (message.isUser) 18.dp else 4.dp,
+                bottomEnd = if (message.isUser) 4.dp else 18.dp
+            ),
+            modifier = Modifier.widthIn(max = 280.dp)
+        ) {
+            Text(
+                text = message.text,
+                color = Color.White,
+                fontSize = 15.sp,
+                modifier = Modifier.padding(14.dp)
+            )
         }
-
-        conn.outputStream.use { os ->
-            os.write(jsonInput.toString().toByteArray())
-        }
-
-        if (conn.responseCode == 200) {
-            val response = conn.inputStream.bufferedReader().use { it.readText() }
-            val jsonResponse = JSONObject(response)
-            jsonResponse
-                .getJSONArray("candidates")
-                .getJSONObject(0)
-                .getJSONObject("content")
-                .getJSONArray("parts")
-                .getJSONObject(0)
-                .getString("text")
-        } else {
-            "Error: ${conn.responseCode} - API Call Failed"
-        }
-    } catch (e: Exception) {
-        "Error: ${e.localizedMessage}"
     }
+}
+
+@Composable
+fun MagicSatyaTheme(content: @Composable () -> Unit) {
+    MaterialTheme(content = content)
 }
