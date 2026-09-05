@@ -1,8 +1,6 @@
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
-}
-
+    id("org.jetbrains.kotlin.android")}
 android {
     namespace = "com.example.magicsatya"
     compileSdk = 34
@@ -12,17 +10,14 @@ android {
         minSdk = 24
         targetSdk = 34
         versionCode = 1
-        versionName = "1.0"
-    }
+        versionName = "1.0"}
 
     buildTypes {
         release {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-        }
+                "proguard-rules.pro") }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
