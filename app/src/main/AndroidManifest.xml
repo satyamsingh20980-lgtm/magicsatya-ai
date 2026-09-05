@@ -6,6 +6,7 @@
 
     <application
         android:allowBackup="true"
+        android:icon="@drawable/ic_launcher"
         android:label="MagicSatya AI"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
